@@ -1,9 +1,10 @@
 const express = require("express");
 const app = express();
 const PORT = 8080; // default port is 8080
+const bodyParser = require("body-parser");
 
 app.set("view engine", "ejs");
-
+app.use(bodyParser.urlencoded({exended: true}));
 // using this Object to keep track of all the URLs and their shortened forms
 const urlDatabase = {
   "b2xVn2": "http://www.lighthouselabs.ca",
@@ -31,6 +32,11 @@ app.get("/urls/new", (req, res) => {
 app.get("/urls/:shortURL", (req, res) => {
   let templateVars = { shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL] };
   res.render("urls_show", templateVars);
+});
+
+app.post("/urls", (req, res) => {
+  console.log(req.body);
+  res.send('Ok');
 });
 
 app.listen(PORT, () => {
