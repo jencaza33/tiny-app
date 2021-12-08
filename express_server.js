@@ -1,6 +1,7 @@
 const express = require("express");
 const app = express();
 const PORT = 8080; // default port is 8080
+
 const bodyParser = require("body-parser");
 
 const generateRandomString = function() {
@@ -12,19 +13,24 @@ const generateRandomString = function() {
   }
   return randomString;
 };
+
 app.set("view engine", "ejs");
 app.use(bodyParser.urlencoded({exended: true}));
+
 // using this Object to keep track of all the URLs and their shortened forms
 const urlDatabase = {
   "b2xVn2": "http://www.lighthouselabs.ca",
   "9sm5xK": "http://www.google.com",
 };
+
 app.get("/", (req, res) => {
   res.send("Hello!");
 });
+
 app.get("/urls.json", (req, res) => {
   res.json(urlDatabase);
 });
+
 app.get("/hello", (req, res) => {
   res.send("<html><body>Hello <b>World</b></body></html>\n");
 });
@@ -43,11 +49,18 @@ app.get("/urls/:shortURL", (req, res) => {
   res.render("urls_show", templateVars);
 });
 
+app.get("/u/:shortURL", (req, res) => {
+  const longURL = urlDatabase[req.params.shortURL];
+  console.log(longURL);
+  res.redirect(longURL);
+});
+
 app.post("/urls", (req, res) => {
   urlDatabase[generateRandomString()] = req.body.longURL;
   res.send('Ok');
   const shortURL = generateRandomString();
   urlDatabase[shortURL] = req.body.longURL;
+  console.log(urlDatabase);
   res.redirect(`/urls/${shortURL}`);
 });
 
