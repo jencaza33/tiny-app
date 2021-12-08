@@ -55,7 +55,7 @@ app.get("/urls.json", (req, res) => {
 app.get("/urls", (req, res) => {
   let templateVars = {
     urls: urlDatabase,
-    username: req.cookies["username"],
+    user: users[req.cookies["user_id"]],
   };
   res.render('urls_index', templateVars);
 });
@@ -63,14 +63,14 @@ app.get("/urls", (req, res) => {
 /* Responds to '/urls/new' GET request with rendered HTML of urls_new.ejs */
 app.get("/urls/new", (req, res) => {
   let templateVars = {
-    username: req.cookies["username"],
+    user: users[req.cookies["user_id"]],
   };
   res.render("urls_new", templateVars);
 });
 
 app.get("/register", (req, res) => {
   let templateVars = {
-    username: req.cookies["username"],
+    user: users[req.cookies["user_id"]],
   };
   res.render("urls_registration", templateVars);
 });
