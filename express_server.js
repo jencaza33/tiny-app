@@ -15,6 +15,7 @@ const generateRandomString = function() {
   }
   return randomString;
 };
+
 /* Checks if submitted email from registration form already exists in user database */
 const emailAlreadyExists = function(email) {
   for (const user in users) {
@@ -35,19 +36,18 @@ const urlsForUser = function(id) {
   return userUrls;
 };
 
-/* Object with all Long URLs and their corresponding short URLS. */
+/* Object with all Long URLs and their corresponding short URLS and userIDs. */
 const urlDatabase = {
-// "b2xVn2": { longURL: "http://www.lighthouselabs.ca", userID: "userRandomID"},
-// "9sm5xK": { longURL: "http://www.google.com", userID: "userRandomID"},
+  // "b2xVn2": { longURL: "http://www.lighthouselabs.ca", userID: "userRandomID"},
 };
 
 /* Object with all user data */
 const users = {
-// "userRandomID": {
-// id: "userRandomID",
-// email: "user@example.com",
-// password: "purple-monkey-dinosaur"
-// }
+  // "userRandomID": {
+  //   id: "userRandomID",
+  //   email: "user@example.com",
+  //   password: "purple-monkey-dinosaur"
+  // }
 };
 
 app.set("view engine", "ejs");
@@ -73,12 +73,12 @@ app.get("/urls", (req, res) => {
 - if user is logged in, responds with rendered HTML of urls_new.ejs
 - if user is not logged, redirects to 'login'*/
 app.get("/urls/new", (req, res) => {
-  let templateVars = {
-    user: users[req.cookies["user_id"]],
-  };
   if (!req.cookies["user_id"]) {
     res.redirect("/login");
   } else {
+    let templateVars = {
+      user: users[req.cookies["user_id"]],
+    };
     res.render("urls_new", templateVars);
   }
 });
@@ -105,7 +105,6 @@ app.get("/urls/:shortURL", (req, res) => {
     urlUserID: urlDatabase[req.params.shortURL].userID,
     user: users[req.cookies["user_id"]],
   };
-  console.log(templateVars);
   res.render("urls_show", templateVars);
 });
 
@@ -113,7 +112,7 @@ app.get("/urls/:shortURL", (req, res) => {
 app.get("/u/:shortURL", (req, res) => {
   const longURL = urlDatabase[req.params.shortURL].longURL;
   if (longURL === undefined) {
-    res.send(302);
+    res.status(302);
   } else {
     res.redirect(longURL);
   }
@@ -122,10 +121,11 @@ app.get("/u/:shortURL", (req, res) => {
 app.post("/register", (req, res) => {
   const submittedEmail = req.body.email;
   const submittedPassword = req.body.password;
+
   if (!submittedEmail || !submittedPassword) {
-    res.send(400, "Please include both a valid email and password");
+    res.status(400).send("Please include both a valid email and password");
   } else if (emailAlreadyExists(submittedEmail)) {
-    res.send(400, "An account already exists for this email address");
+    res.status(400).send("An account already exists for this email address");
   } else {
     const newUserID = generateRandomString();
     users[newUserID] = {
@@ -145,34 +145,47 @@ app.post("/urls", (req, res) => {
     longURL: req.body.longURL,
     userID: req.cookies["user_id"],
   };
-  console.log(urlDatabase);
   res.redirect(`/urls/${shortURL}`);
 });
 
 /* Responds to '/urls/:shortURL/delete' POST request by deleting :shortURL in database, redirects to main '/urls' page */
 app.post("/urls/:shortURL/delete", (req, res) => {
-  const shortURL = req.params.shortURL;
-  delete urlDatabase[shortURL];
-  res.redirect('/urls');
+  const userID = req.cookies["user_id"];
+  const userUrls = urlsForUser(userID);
+  if (Object.keys(userUrls).includes(req.params.shortURL)) {
+    const shortURL = req.params.shortURL;
+    delete urlDatabase[shortURL];
+    res.redirect('/urls');
+  } else {
+    res.status(401);
+  }
 });
 
 /* Reponds to '/urls/:id' POST request by saving the newURL from the request input in the database, and redirecting to '/urls' */
 app.post("/urls/:id", (req, res) => {
-  const shortURL = req.params.id;
-  urlDatabase[shortURL] = req.body.newURL;
-  res.redirect('/urls');
+  const userID = req.cookies["user_id"];
+  const userUrls = urlsForUser(userID);
+  if (Object.keys(userUrls).includes(req.params.id)) {
+    const shortURL = req.params.id;
+    urlDatabase[shortURL].longURL = req.body.newURL;
+    res.redirect('/urls');
+  } else {
+    res.status(401);
+  }
 });
 
 /* Responds to '/login' POST request by creating a cookie with the request input user_id, and redirecting to '/urls' */
 app.post("/login", (req, res) => {
   const email = req.body.email;
   const password = req.body.password;
+
+
   if (!emailAlreadyExists(email)) {
-    res.send(403, "There is no account associated with this email address");
+    res.status(403).send("There is no account associated with this email address");
   } else {
     const userID = emailAlreadyExists(email);
     if (!bcrypt.compareSync(password, users[userID].password)) {
-      res.send(403, "The password you entered does not match the one associated with the provided email address");
+      res.status(403).send("The password you entered does not match the one associated with the provided email address");
     } else {
       res.cookie('user_id', userID);
       res.redirect("/urls");
