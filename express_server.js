@@ -3,7 +3,7 @@ const bodyParser = require("body-parser");
 const cookieSession = require('cookie-session');
 const app = express();
 const PORT = 8080;
-const bcrypt = require('bcrypt');
+const bcryptjs = require('bcryptjs');
 
 /* Generates a random string, used for creating short URLs and userIDs */
 const generateRandomString = function() {
@@ -77,7 +77,7 @@ app.get("/urls", (req, res) => {
 - if user is logged in, responds with rendered HTML of urls_new.ejs
 - if user is not logged, redirects to 'login'*/
 app.get("/urls/new", (req, res) => {
-  if (!req.cookies["user_id"]) {
+  if (!req.session["user_id"]) {
     res.redirect("/login");
   } else {
     let templateVars = {
@@ -89,7 +89,7 @@ app.get("/urls/new", (req, res) => {
 
 app.get("/register", (req, res) => {
   let templateVars = {
-    user: users[req.cookies["user_id"]],
+    user: users[req.session["user_id"]],
   };
   res.render("urls_registration", templateVars);
 });
@@ -135,9 +135,9 @@ app.post("/register", (req, res) => {
     users[newUserID] = {
       id: newUserID,
       email: submittedEmail,
-      password: bcrypt.hashSync(submittedPassword, 10),
+      password: bcryptjs.hashSync(submittedPassword, 10),
     };
-    res.session('user_id', newUserID);
+    req.session.user_id = newUserID;
     res.redirect("/urls");
   }
 });
@@ -188,10 +188,10 @@ app.post("/login", (req, res) => {
     res.status(403).send("There is no account associated with this email address");
   } else {
     const userID = emailAlreadyExists(email);
-    if (!bcrypt.compareSync(password, users[userID].password)) {
+    if (!bcryptjs.compareSync(password, users[userID].password)) {
       res.status(403).send("The password you entered does not match the one associated with the provided email address");
     } else {
-      res.session('user_id', userID);
+      req.session.user_id = userID;
       res.redirect("/urls");
     }
   }
@@ -199,7 +199,7 @@ app.post("/login", (req, res) => {
 
 /* Responds to '/logout' POST request by removing the cookie of the logged in user, and redirecting to '/urls' */
 app.post("/logout", (req, res) => {
-  res.session = null;
+  req.session = null;
   res.redirect('/urls');
 });
 
