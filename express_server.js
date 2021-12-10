@@ -16,20 +16,29 @@ const generateRandomString = function() {
   return randomString;
 };
 
-/* Checks if email is in user database
-If true, returns the userID
-If false, returns false*/
-const emailAlreadyExists = function(email) {
-  for (const user in users) {
-    if (users[user].email === email) {
-      return users[user].id;
+/* Checks if given email corresponds to a user in a given database, returns true or false */
+const emailHasUser = function(email, userDatabase) {
+  for (const user in userDatabase) {
+    if (userDatabase[user].email === email) {
+      return true;
     }
-  } return false;
+  }
+  return false;
+};
+
+/* Takes an email and userDatabase and returns the user ID for the user with the given email address */
+const userIdFromEmail = function(email, userDatabase) {
+  for (const user in userDatabase) {
+    if (userDatabase[user].email === email) {
+      return userDatabase[user].id;
+    }
+  }
 };
 
 
+
 /* Returns an object of short URLs specific to the passed in userID */
-const urlsForUser = function(id) {
+const urlsForUser = function(id, urlDatabase) {
   const userUrls = {};
   for (const shortURL in urlDatabase) {
     if (urlDatabase[shortURL].userID === id) {
@@ -78,7 +87,7 @@ app.get("/", (req, res) => {
 /* Responds to '/urls' GET request with rendered HTML of urls_index.ejs. */
 app.get("/urls", (req, res) => {
   let templateVars = {
-    urls: urlsForUser(req.session.user_id),
+    urls: urlsForUser(req.session.user_id, urlDatabase),
     user: users[req.session.user_id],
   };
   res.render('urls_index', templateVars);
@@ -88,7 +97,7 @@ app.get("/urls", (req, res) => {
 - if user is logged in, responds with rendered HTML of urls_new.ejs
 - if user is not logged, redirects to 'login'*/
 app.get("/urls/new", (req, res) => {
-  if (!req.session.user_id) {
+  if (!cookieHasUser(req.session.user_id, users)) {
     res.redirect("/login");
   } else {
     let templateVars = {
@@ -168,7 +177,7 @@ app.post("/register", (req, res) => {
   const submittedPassword = req.body.password;
   if (!submittedEmail || !submittedPassword) {
     res.status(400).send("Please include both a valid email and password");
-  } else if (emailAlreadyExists(submittedEmail)) {
+  } else if (emailHasUser(submittedEmail, users)) {
     res.status(400).send("An account already exists for this email address");
   } else {
     const newUserID = generateRandomString();
@@ -187,10 +196,10 @@ app.post("/login", (req, res) => {
   const email = req.body.email;
   const password = req.body.password;
 
-  if (!emailAlreadyExists(email)) {
+  if (!emailHasUser(email, users)) {
     res.status(403).send("There is no account associated with this email address");
   } else {
-    const userID = emailAlreadyExists(email);
+    const userID = userIdFromEmail(email, users);
     if (!bcrypt.compareSync(password, users[userID].password)) {
       res.status(403).send("The password you entered does not match the one associated with the provided email address");
     } else {
@@ -209,7 +218,7 @@ app.post("/logout", (req, res) => {
 /* Responds to '/urls/:shortURL/delete' POST request by deleting :shortURL in database, redirects to main '/urls' page */
 app.post("/urls/:shortURL/delete", (req, res) => {
   const userID = req.session.user_id;
-  const userUrls = urlsForUser(userID);
+  const userUrls = urlsForUser(userID, urlDatabase);
   if (Object.keys(userUrls).includes(req.params.shortURL)) {
     const shortURL = req.params.shortURL;
     delete urlDatabase[shortURL];
@@ -222,7 +231,7 @@ app.post("/urls/:shortURL/delete", (req, res) => {
 /* Reponds to '/urls/:id' POST request by saving the newURL from the request input in the database, and redirecting to '/urls' */
 app.post("/urls/:id", (req, res) => {
   const userID = req.session.user_id;
-  const userUrls = urlsForUser(userID);
+  const userUrls = urlsForUser(userID, urlDatabase);
   if (Object.keys(userUrls).includes(req.params.id)) {
     const shortURL = req.params.id;
     urlDatabase[shortURL].longURL = req.body.newURL;
