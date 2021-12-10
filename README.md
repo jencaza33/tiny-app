@@ -4,9 +4,13 @@
 
 ## Final Product
 
-!["screenshot description"](#)
+!["Main page of my TinyApp"](https://github.com/jencaza33/tinyapp/blob/master/docs/main_page.png?raw=true)
 
-!["screenshot description"](#)
+!["Registration page"](https://github.com/jencaza33/tinyapp/blob/master/docs/registration_page.png?raw=true)
+
+!["URL edit page"](https://github.com/jencaza33/tinyapp/blob/master/docs/url_edit_page.png?raw=true)
+
+!["Users URL list"](https://github.com/jencaza33/tinyapp/blob/master/docs/users_url_list.png?raw=true)
 
 ## Dependencies
 
